@@ -241,3 +241,31 @@ archive_logs() {
         echo "no absent.log to archive"
     fi
 }
+
+
+
+
+#----------------------------------MENU----------------------------------------------
+
+#Asks what the user wants and sends them to the right office.
+
+while true; do
+    echo ""
+    echo "------------------------------------------"
+    echo "     AUTOMATED DEPLOY AGENT CONTROL  "
+    echo "------------------------------------------"
+    echo " 1) Deploy Application Instance"
+    echo " 2) Run Active Project Tracking Engine"
+    echo " 3) Archive Active Project Log Files"
+    echo " 4) Terminate Script Program Session"
+    echo "------------------------------------------"
+    read -p "Select choice option (1-4): " main_choice
+
+    case "$main_choice" in
+        1) deploy_app ;;
+        2) run_app "" ;;
+        3) archive_logs ;;
+        4) echo "Exiting agent interface session. Goodbye!"; exit 0 ;;
+        *) echo "invalid option" ;;
+    esac
+done
