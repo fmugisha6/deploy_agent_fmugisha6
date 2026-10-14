@@ -209,3 +209,35 @@ echo "Session Ended!!"
 
 }
 
+#------------------------------------Feature 3:archive_logs()---------------------------
+
+archive_logs() {
+    read -p "Enter project name: " check_suffix
+    local target_dir="attendance_tracker_${check_suffix}"
+
+    if [ ! -d "$target_dir" ]; then
+        echo "[ERROR] project directory not found" >&2
+        return 1
+    fi
+
+#Capture the timestamp exactly ONCE so both files share it
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    mkdir -p "$target_dir/archives/attendance"
+    mkdir -p "$target_dir/archives/absent"
+
+    if [ -f "$target_dir/reports/attendance.log" ]; then
+        cp "$target_dir/reports/attendance.log" "$target_dir/archives/attendance/attendance_${timestamp}.log"
+        echo "Archived attendance log to: $target_dir/archives/attendance/attendance_${timestamp}.log"
+    else
+        echo "no attendance.log to archive"
+    fi
+
+# Handle absent log files politely if nobody was recorded absent
+    if [ -f "$target_dir/reports/absent.log" ]; then
+        cp "$target_dir/reports/absent.log" "$target_dir/archives/absent/absent_${timestamp}.log"
+        echo "Archived absent log to: $target_dir/archives/absent/absent_${timestamp}.log"
+    else
+        echo "no absent.log to archive"
+    fi
+}
