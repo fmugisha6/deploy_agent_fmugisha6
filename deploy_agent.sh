@@ -150,12 +150,12 @@ read -p "Roster: (A) copy from template or (B) generate fresh? (A/B): " roster_c
     fi 
 
 #--------------------PERMISSIONS-------------------------------------
-#Part F — Permissions: lock down configuration and make python executable
+#Permissions: lock down configuration and make python executable
    chmod +x "$project_dir/attendance_checker.py"
    chmod 600 "$project_dir/Helpers/config.json"
    echo "[SUCCESS] Permissions set: Script (+x) and Config (600 owner-only)."
 #--------------------Threshold update offer--------------------------------
-#Part G Threshold update offer: validate that entry is purely digits
+#Threshold update offer: validate that entry is purely digits
     read -p "Update thresholds? (y/n): " update_switch
    if [[ "$update_switch" == "y" || "$update_switch" == "Y" ]]; then
         read -p "Enter new warning (default 75): " custom_warn
@@ -173,8 +173,13 @@ read -p "Roster: (A) copy from template or (B) generate fresh? (A/B): " roster_c
         fi
     fi
 
-
-
+#-----------------------Disarm the trap------------------------------
+#Disarm the trap: seatbelt off since deploy succeeded safely
+    trap - INT TSTP
+    echo "Deployment complete"
+#-----------------------Verify by running-----------------------------
+#Verify by running: pass directory variable directly to execute app
+    run_app "$project_dir"
 
 
 
