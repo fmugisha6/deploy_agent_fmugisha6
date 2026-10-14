@@ -149,7 +149,11 @@ read -p "Roster: (A) copy from template or (B) generate fresh? (A/B): " roster_c
         return 1
     fi 
 
-
+#--------------------PERMISSIONS-------------------------------------
+#Part F — Permissions: lock down configuration and make python executable
+   chmod +x "$project_dir/attendance_checker.py"
+   chmod 600 "$project_dir/Helpers/config.json"
+   echo "[SUCCESS] Permissions set: Script (+x) and Config (600 owner-only)."
 
 
 
