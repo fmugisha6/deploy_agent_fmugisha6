@@ -1,48 +1,41 @@
 #!/bin/bash
 
+#-------Global so the interrupt handler can always see it (avoids unbound-variable surprises)------
+project_dir=""
+
+#------ Arrays holding sample student profiles for the dynamic Part E Option B roster setup-----
+SAMPLE_NAMES=("Alice Johnson" "Bob Smith" "Charlie Brown" "Diana Prince" "Evan Wright")
+SAMPLE_EMAILS=("alice@example.com" "bob@example.com" "charlie@example.com" "diana@example.com" "evan@example.com")
+
 #-----------INTERRUPT HANDLER----------
+#--- Runs only when Ctrl+C (INT) or Ctrl+Z (TSTP) hits during deployment---
+
 cleanup_interrupt() {
   #1.blankline
-  echo ""
-  echo "Deployment interrupted! Saving current state__"
+     echo ""
+     echo "Deployment interrupted! Saving current state.."
   #2.Guard: check if the directory exists before zipping/removing
 if  [ -d "$project_dir" ];then
   #3.creating the archive from the folder
-    zip -r "${project_dir}_archive.zip" "$project_dir" > /dev/null 2>&1
+     zip -r "${project_dir}_archive.zip" "$project_dir" > /dev/null 2>&1 &&
   #4.Clean up workspace clutter by removing the half-made folder
-    rm -rf "$project_dir"
+     rm -rf "$project_dir"
   #5.Echo a confirmation of what was saved and where
-    echo "Saved partial project to ${project_dir}_archive.zip and cleaned workspace."
+     echo "Saved partial project to ${project_dir}_archive.zip and cleaned workspace."
 
 else
   #6.Fallback if interrupted before folder creation
-    echo "Nothing was created yet — nothing to archive."
+     echo "Nothing was created yet — nothing to archive."
 fi
   #7.Exit with Unix status code 130 (SIGINT / Ctrl+C)
   exit 130
 }
 
-
-# ---------- Feature 2: Run()----------
-run_app() {
-    read -p "Enter your project name: " projectName
-    project_dir= "attendance_tracker_${projectName}"
-
-if [ ! -d "$project_dir" ];then
-     echo "Project not found, deploy it first"
-        return
-fi
-
-starting _dir=$(pwd)
-
-cd "$project_dir"
-
-python3 attendace_checker.py
-
-cd "$starting_dir"
-
-echo "Session Ended!!"
-
+#----HELPER: abort_deploy — rollback for validation failures mid-deployment-----
+abort_deploy() {
+  echo "[ABORT] Rolling back incomplete deployment."
+  [ -n "$project_dir" ] && rm -rf "$project_dir"
+  trap - INT TSTP
 }
 
 
@@ -56,8 +49,7 @@ deploy_app() {
 then 
     echo "Python 3 is installed."
 else
-    echo "Python not installed "   
-exit 1
+    echo "Python not installed " exit 1
 fi
   #------test 2 :zip-------
    if command -v zip  > /dev/null 2>&1
@@ -99,6 +91,65 @@ trap 'cleanup_interrupt' INT TSTP
 mkdir -p "$project_dir/Helpers"
 
 #---------populating files------- 
+     if [ ! -d "templates" ] || [ ! -f "templates/attendance_checker.py" ] || [ ! -f "templates/config.json" ]; then
+        echo "[ERROR] Base template components are missing." >&2
+        abort_deploy
+        return 1
+     fi
+
+
+cp templates/attendance_checker.py "$project_dir/"
+cp templates/config.json "$project_dir/Helpers/"
+
+read -p "Roster: (A) copy from template or (B) generate fresh? (A/B): " roster_choice
+
+    if [[ "$roster_choice" == "A" || "$roster_choice" == "a" ]]; then
+        # FIX: option A reads templates/assets.csv, so it must be checked too
+        if [ ! -f "templates/assets.csv" ]; then
+            echo "[ERROR] templates/assets.csv is missing." >&2
+            abort_deploy
+            return 1
+        fi
+        read -p "how many students?: " n
+        # FIX: n feeds arithmetic $((n + 1)) — non-numeric input crashes bash
+        if ! [[ "$n" =~ ^[0-9]+$ ]] || [ "$n" -lt 1 ]; then
+            echo "[ERROR] Student count must be a positive integer." >&2
+            abort_deploy
+            return 1
+        fi
+        local target_lines=$((n + 1))
+        # 11. Extract header + n rows from sample source file
+        head -n "$target_lines" templates/assets.csv > "$project_dir/Helpers/assets.csv"
+
+    elif [[ "$roster_choice" == "B" || "$roster_choice" == "b" ]]; then
+        read -p "how many students?: " n
+        if ! [[ "$n" =~ ^[0-9]+$ ]] || [ "$n" -lt 1 ]; then
+            echo "[ERROR] Student count must be a positive integer." >&2
+            abort_deploy
+            return 1
+        fi
+        # FIX: only 5 sample profiles exist — cap instead of silently truncating
+        if [ "$n" -gt "${#SAMPLE_NAMES[@]}" ]; then
+            echo "[NOTICE] Only ${#SAMPLE_NAMES[@]} sample profiles exist; roster capped at ${#SAMPLE_NAMES[@]}."
+            n="${#SAMPLE_NAMES[@]}"
+        fi
+        echo "Email,Names,Attendance Count,Absence Count" > "$project_dir/Helpers/assets.csv"
+        # 12. Loop n times over arrays to append data rows with 0,0 counts
+        for ((i=0; i<n; i++)); do
+            echo "${SAMPLE_EMAILS[i]},${SAMPLE_NAMES[i]},0,0" >> "$project_dir/Helpers/assets.csv"
+        done
+        # 13. Edit config total_sessions to 1 using inline sed pattern target matching
+        sed -i 's/"total_sessions": [0-9]*/"total_sessions": 1/' "$project_dir/Helpers/config.json"
+
+    else
+        # FIX: restored from your original screenshot version — the attached
+        # draft dropped this branch and deployed with NO roster file at all
+        echo "[ERROR] Invalid option, aborting."
+        abort_deploy
+        return 1
+    fi 
+
+
 
 
 
@@ -109,3 +160,27 @@ mkdir -p "$project_dir/Helpers"
 
 }
  deploy_app
+
+
+# ---------- Feature 2: Run()----------
+run_app() {
+    read -p "Enter your project name: " projectName
+    project_dir= "attendance_tracker_${projectName}"
+
+if [ ! -d "$project_dir" ];then
+     echo "Project not found, deploy it first"
+        return
+fi
+
+starting _dir=$(pwd)
+
+cd "$project_dir"
+
+python3 attendace_checker.py
+
+cd "$starting_dir"
+
+echo "Session Ended!!"
+
+}
+
