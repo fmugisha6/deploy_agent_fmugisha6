@@ -154,8 +154,24 @@ read -p "Roster: (A) copy from template or (B) generate fresh? (A/B): " roster_c
    chmod +x "$project_dir/attendance_checker.py"
    chmod 600 "$project_dir/Helpers/config.json"
    echo "[SUCCESS] Permissions set: Script (+x) and Config (600 owner-only)."
+#--------------------Threshold update offer--------------------------------
+#Part G Threshold update offer: validate that entry is purely digits
+    read -p "Update thresholds? (y/n): " update_switch
+   if [[ "$update_switch" == "y" || "$update_switch" == "Y" ]]; then
+        read -p "Enter new warning (default 75): " custom_warn
+        read -p "Enter new failure (default 50): " custom_fail
 
+        [ -z "$custom_warn" ] && custom_warn=75
+        [ -z "$custom_fail" ] && custom_fail=50
 
+        if [[ "$custom_warn" =~ ^[0-9]+$ && "$custom_fail" =~ ^[0-9]+$ ]]; then
+            sed -i "s/\"warning\": [0-9]*/\"warning\": $custom_warn/" "$project_dir/Helpers/config.json"
+            sed -i "s/\"failure\": [0-9]*/\"failure\": $custom_fail/" "$project_dir/Helpers/config.json"
+            echo "Updated values applied: Warning: ${custom_warn}%, Failure: ${custom_fail}%"
+        else
+            echo "[REJECTED] Thresholds must be numeric digits only! Default configuration saved."
+        fi
+    fi
 
 
 
