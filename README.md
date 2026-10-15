@@ -1,6 +1,6 @@
-# Automated Attendance Tracker Deployment Agent
+# Automated Attendance Tracker App
 
-A modular Infrastructure-as-Code (IaC) and lifecycle management shell script (`deploy_agent.sh`) designed to automate the provisioning, execution, threshold configuration, and log archiving for Attendance Tracking application instances.
+A shell script (`deploy_agent.sh`) that automates provisioning, execution, threshold configuration, and log archiving for Attendance Tracking application instances.
 
 ---
 
